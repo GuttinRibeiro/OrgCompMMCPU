@@ -34,7 +34,66 @@
 #define enable_Instruction_Fetch 0b100101000000100
 #define enable_Decode_Register   0b000000000011000
 
-int alu( int a, int b, char alu_op, int *result_alu, char *zero, char *overflow) {
+//Máscaras específicas para definir a operação a ser realizada na ULA:
+#define split_significant_function_field 0b00001111
+#define ALU_OPERATION_ADD                0b00000000
+#define ALU_OPERATION_SUB                0b00000010
+#define ALU_OPERATION_AND                0b00000100
+#define ALU_OPERATION_OR                 0b00000101
+#define ALU_OPERATION_SLT                0b00001010
+
+//Máscaras para definir o valor de alu_op:
+#define ALU_OP_Add                       0b00000010
+#define ALU_OP_Sub                       0b00000110
+#define ALU_OP_And                       0b00000000
+#define ALU_OP_Or                        0b00000001
+#define ALU_OP_Slt                       0b00000111
+#define ALU_OP_Err                       0b11111111
+
+//Máscaras para operações dentro da ULA:
+#define MAX_SUM_VALUE 0b00000000000000000000000000011111
+#define ZERO          0b00000000000000000000000000000000
+
+int alu(int a, int b, char alu_op, int *result_alu, char *zero, char *overflow) {
+  //Caso a entrada de operaçãos seja inválida:
+  if(alu_op == ALU_OP_Err) {
+    return 1;
+  }
+
+  //Caso a operação seja de soma, o resultado é rs(a) + rt(b):
+  if(alu_op == ALU_OP_Add) {
+    if(a + b == ZERO) {
+      *zero = 1;
+      *overflow = 0;
+      *result_alu = ZERO;
+    }
+    else {
+      *zero = 0;
+      if(a + b > MAX_SUM_VALUE) {
+        *overflow = 1;
+        //calcular o complemento
+      }
+      else {
+        *overflow = 0;
+        *result_alu = a + b;
+      }
+    }
+  }
+  //Caso a operação seja de subtração, o resultado é rs(a) - rt(b):
+  else if(alu_op == ALU_OP_Sub) {
+    if(a - b == ZERO) {
+      *zero = 1;
+      *overflow = 0;
+      *result_alu = ZERO;
+    }
+    else {
+      *zero = 0;
+      //computar overflow e resultado
+    }
+  }
+
+
+
   return 0;
 }
 
@@ -113,13 +172,34 @@ void exec_calc_end_branch(short int sc, int A, int B, int IR, int PC, int ALUOUT
     char alu_op, char overflow, char zero;
     int alu_result;
 
-    short int operation = split_cfunction & IR;
-    /* 0x20: add;
+    char operation = IR;
+    operation = operation & split_significant_function_field;
+    /* Valores de campo de função para cada operação:
+       0x20: add;
        0x22: sub;
        0x24: and;
        0x25: or;
        0x2a: slt.
     */
+    if(operation == ALU_OPERATION_ADD) {
+      alu_op = ALU_OP_Add;
+    }
+    else if (operation == ALU_OPERATION_SUB) {
+      alu_op = ALU_OP_Sub;
+    }
+    else if (operation == ALU_OPERATION_AND) {
+      alu_op = ALU_OP_And;
+    }
+    else if (operation == ALU_OPERATION_OR) {
+      alu_op = ALU_OP_Or;
+    }
+    else if (operation == ALU_OPERATION_SLT) {
+      alu_op = ALU_OP_Slt;
+    }
+    else {
+      alu_op = ALU_OP_Err;
+    }
+
     alu(A, B, &alu_op, &alu_result, &zero, &overflow);
     return;
   }
