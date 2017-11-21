@@ -79,7 +79,6 @@ void control_unit(int IR, short int *sc) {
     }
   }
 
-
   not_implemented();
 }
 
@@ -87,7 +86,7 @@ void control_unit(int IR, short int *sc) {
 void instruction_fetch(short int sc, int PC, int ALUOUT, int IR, int* PCnew, int* IRnew, int* MDRnew) {
   if(sc == enable_Instruction_Fetch) {
     *IRNew = memory[PC];
-    *PCNew = PC + 4;
+    *PCNew = PC++;
     return;
   }
 
@@ -108,6 +107,24 @@ void decode_register(short int sc, int IR, int PC, int A, int B, int *Anew, int 
 
 
 void exec_calc_end_branch(short int sc, int A, int B, int IR, int PC, int ALUOUT, int *ALUOUTnew, int *PCnew) {
+  //Se a instrução já tem o tipo definido, definir a operação:
+  if(sc == enable_ALUSrcA | enable_ALUOp1) {
+    //R-Type:
+    char alu_op, char overflow, char zero;
+    int alu_result;
+
+    short int operation = split_cfunction & IR;
+    /* 0x20: add;
+       0x22: sub;
+       0x24: and;
+       0x25: or;
+       0x2a: slt.
+    */
+    alu(A, B, &alu_op, &alu_result, &zero, &overflow);
+    return;
+  }
+
+
   not_implemented();
 }
 
