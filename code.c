@@ -52,6 +52,7 @@
 
 //Máscaras para operações dentro da ULA:
 #define MAX_SUM_VALUE 0b00000000000000000000000000011111
+#define MIN_SUB_VALUE 0b11111111111111111111111111100000
 #define ZERO          0b00000000000000000000000000000000
 
 int alu(int a, int b, char alu_op, int *result_alu, char *zero, char *overflow) {
@@ -70,8 +71,9 @@ int alu(int a, int b, char alu_op, int *result_alu, char *zero, char *overflow) 
     else {
       *zero = 0;
       if(a + b > MAX_SUM_VALUE) {
+        //Conferir:
         *overflow = 1;
-        //calcular o complemento
+        *result_alu = (a + b) - MAX_SUM_VALUE;
       }
       else {
         *overflow = 0;
@@ -88,12 +90,53 @@ int alu(int a, int b, char alu_op, int *result_alu, char *zero, char *overflow) 
     }
     else {
       *zero = 0;
-      //computar overflow e resultado
+      if(a - b < MIN_SUB_VALUE) {
+        //Conferir:
+        *overflow = 1;
+        *result_alu = (a - b) - MIN_SUB_VALUE;
+      }
+      else {
+        *overflow = 0;
+        *result_alu = a - b;
+      }
     }
   }
-
-
-
+  //Caso a operação desejada seja um and:
+  else if(alu_op == ALU_OP_And) {
+    *overflow = 0;
+    if(a == ZERO || b == ZERO) {
+      *zero = 1;
+      *result_alu = ZERO;
+    }
+    else {
+      *zero = 0;
+      *result_alu = a & b;
+    }
+  }
+  //Caso a operação desejada seja um or:
+  else if(alu_op == ALU_OP_Or) {
+    *overflow = 0;
+    if(a == ZERO && b == ZERO) {
+      *zero = 1;
+      *result_alu = ZERO;
+    }
+    else {
+      *zero = 0;
+      *result_alu = a | b;
+    }
+  }
+  //Caso a operação desejada seja Set on Less Than, rd(result_alu) = 1 se rs(a) < rt(b). No mais, rd = 0:
+  else {
+    *overflow = 0;
+    if(a < b) {
+      *zero = 0;
+      *result_alu = 1;
+    }
+    else {
+      *zero = 1;
+      *result_alu = 0;
+    }
+  }
   return 0;
 }
 
@@ -169,8 +212,7 @@ void exec_calc_end_branch(short int sc, int A, int B, int IR, int PC, int ALUOUT
   //Se a instrução já tem o tipo definido, definir a operação:
   if(sc == enable_ALUSrcA | enable_ALUOp1) {
     //R-Type:
-    char alu_op, char overflow, char zero;
-    int alu_result;
+    char alu_op, overflow, zero;
 
     char operation = IR;
     operation = operation & split_significant_function_field;
@@ -200,7 +242,7 @@ void exec_calc_end_branch(short int sc, int A, int B, int IR, int PC, int ALUOUT
       alu_op = ALU_OP_Err;
     }
 
-    alu(A, B, &alu_op, &alu_result, &zero, &overflow);
+    alu(A, B, alu_op, ALUOUTnew, &zero, &overflow);
     return;
   }
 
