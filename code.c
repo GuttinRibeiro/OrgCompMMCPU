@@ -19,6 +19,7 @@
 */
 
 #include <mmcpu/cpu.h>
+#include <mmcpu/mask.h>
 
 /* Students, you are required to implemented the functions bellow.
    Please, refere to cpu.h for further information. */
@@ -187,8 +188,8 @@ void control_unit(int IR, short int *sc) {
 
 void instruction_fetch(short int sc, int PC, int ALUOUT, int IR, int* PCnew, int* IRnew, int* MDRnew) {
   if(sc == enable_Instruction_Fetch) {
-    *IRNew = memory[PC];
-    *PCNew = PC++;
+    *IRnew = memory[PC];
+    *PCnew = PC++;
     return;
   }
 
