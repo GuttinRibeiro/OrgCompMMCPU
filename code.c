@@ -58,6 +58,15 @@
 #define MIN_SUB_VALUE 0b11111111111111111111111111100000
 #define ZERO          0b00000000000000000000000000000000
 
+/* TODOLIST:
+1- Checar as posições de acesso à memória e aos registradores;
+2- Criar máscaras de erros para 1;
+3- Checar saída de erro da ULA;
+4- Descobrir para que serve o overflow da ULA;
+5- Descobrir para que serve o IRnew no acesso à memória;
+6- Testar.
+*/
+
 int alu(int a, int b, char alu_op, int *result_alu, char *zero, char *overflow) {
   //Caso a entrada de operaçãos seja inválida:
   if(alu_op == ALU_OP_Err) {
@@ -179,6 +188,12 @@ void control_unit(int IR, short int *sc) {
     return;
   }
 
+  //Se o sinal de controle já corresponde ao de uma R-Type, ativar o acesso à memória no ciclo atual:
+  if(*sc == enable_ALUSrcA | enable_ALUOp1) {
+    *sc = enable_RegDst | enable_RegWrite;
+    return;
+  }
+
   //Se o sinal de controle era de encontrar uma instrução no ciclo anterior, realizar a decodificação:
   if(*sc == enable_Instruction_Fetch) {
     *sc = enable_Decode_Register;
@@ -227,8 +242,8 @@ void instruction_fetch(short int sc, int PC, int ALUOUT, int IR, int* PCnew, int
 
 void decode_register(short int sc, int IR, int PC, int A, int B, int *Anew, int *Bnew, int *ALUOUTnew) {
   if(sc == enable_Decode_Register) {
-    *Anew = split_rs & IR;
-    *Bnew = split_rt & IR;
+    *Anew = reg[split_rs & IR];
+    *Bnew = reg[split_rt & IR];
     *ALUOUTnew = (split_immediate & IR) << 2; //Conferir se é equivalente a ALUOut = PC + ext(IR[15-0] << 2)
     return;
   }
@@ -305,9 +320,29 @@ void exec_calc_end_branch(short int sc, int A, int B, int IR, int PC, int ALUOUT
 //Exec escrita conforme slide
 
 void write_r_access_memory(short int sc, int IR, int MDR, int AMUOUT, int PC, int *MDRnew, int *IRnew) {
-  not_implemented();
-}
+  //*IRnew ????
 
+  //Se o sinal de controle indica uma LW:
+  if(sc == enable_IorD | enable_MemRead) {
+    //MDR = Mem[ALUOut]
+    *MDRnew =  memory[AMUOUT];
+    return;
+  }
+
+  //Se o sinal de controle indica uma SW:
+  if(sc == enable_IorD | enable_MemWrite) {
+    //Mem[ALUOut] = B (IR)
+    memory[AMUOUT] = IR;
+    return;
+  }
+
+  if(sc == enable_RegDst | enable_RegWrite) {
+    //Reg[IR[15-11]] = ALUOut
+    reg[IR & split_rd] = AMUOUT;
+    return;
+  }
+}
+//MEM feita a menos dos itens listados
 
 void write_ref_mem(short int sc, int IR, int MDR, int ALUOUT) {
   not_implemented();
