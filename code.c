@@ -25,11 +25,13 @@
    Please, refere to cpu.h for further information. */
 
 //Constantes para controle do tipo de instrução:
-#define R_Type_Op 0b0000000000000000
-#define Beq_Op    0b0001000000000000
-#define Jump_Op   0b0000100000000000
-#define LW_Op     0b1000110000000000
-#define SW_Op     0b1010110000000000
+#define R_Type_Op 0b00000000000000000000000000000000
+#define Beq_Op    0b00010000000000000000000000000000
+#define Jump_Op   0b00001000000000000000000000000000
+#define LW_Op     0b10001100000000000000000000000000
+#define SW_Op     0b10101100000000000000000000000000
+//Quando um opcode inválido é recebido, sc recebe:
+#define ERROR_OP  0b00000000000000000000111111111111
 
 //Máscaras para controlar qual operação é executada:
 #define enable_Instruction_Fetch 0b100101000000100
@@ -140,12 +142,40 @@ int alu(int a, int b, char alu_op, int *result_alu, char *zero, char *overflow) 
   }
   return 0;
 }
-
+//ULA ok por hora
 
 void control_unit(int IR, short int *sc) {
   //Checando se o registrador de instrução está vazio:
   if(IR == -1) {
     *sc = enable_Instruction_Fetch;
+    return;
+  }
+
+  //Se o sinal de controle já corresponde ao de um jump, a operação foi finalizada no ciclo anterior:
+  if(*sc == enable_PCWriteCond | enable_PCSource1) {
+    *sc = enable_Instruction_Fetch;
+    return;
+  }
+
+  //Se o sinal de controle já corresponde ao de uma Beq, a operação foi finalizada no ciclo anterior:
+  if(*sc == (enable_ALUSrcA | enable_ALUOp0) | (enable_PCSource0 | enable_PCWriteCond)) {
+    *sc = enable_Instruction_Fetch;
+    return;
+  }
+
+  //Se o sinal de controle já corresponde ao de uma LW ou de uma SW, ativar o acesso à memória no ciclo atual:
+  if(*sc == enable_ALUSrcA | enable_ALUSrcB1) {
+    //LW op: 0x23 | SW op: 0x2b
+    int opcode = IR & split_cop;
+    if(opcode == LW_Op) {
+      *sc = enable_IorD | enable_MemRead;
+    }
+    else if (opcode == SW_Op) {
+      *sc = enable_IorD | enable_MemWrite;
+    }
+    else {
+      *sc = ERROR_OP;
+    }
     return;
   }
 
@@ -157,7 +187,7 @@ void control_unit(int IR, short int *sc) {
 
   //Se a instrução já foi decodificada, descobrir o tipo:
   if(*sc == enable_Decode_Register) {
-    short int opcode = IR & split_cop;
+    int opcode = IR & split_cop;
     if(opcode == R_Type_Op) {
       //R-Type: add, sub, and, or, slt
       *sc = enable_ALUSrcA | enable_ALUOp1;
@@ -184,35 +214,32 @@ void control_unit(int IR, short int *sc) {
 
   not_implemented();
 }
-
+//CU implementada até os sinais de controle para chamada do acesso à memória por LW e SW
 
 void instruction_fetch(short int sc, int PC, int ALUOUT, int IR, int* PCnew, int* IRnew, int* MDRnew) {
   if(sc == enable_Instruction_Fetch) {
     *IRnew = memory[PC];
-    *PCnew = PC++;
+    *PCnew = PC++; //PC+1 por estarmos trabalhando com vetores na main
     return;
   }
-
-  not_implemented();
 }
-
+//IF ok
 
 void decode_register(short int sc, int IR, int PC, int A, int B, int *Anew, int *Bnew, int *ALUOUTnew) {
   if(sc == enable_Decode_Register) {
     *Anew = split_rs & IR;
     *Bnew = split_rt & IR;
-    *ALUOUTnew = (split_immediate & IR) << 2;
+    *ALUOUTnew = (split_immediate & IR) << 2; //Conferir se é equivalente a ALUOut = PC + ext(IR[15-0] << 2)
     return;
   }
-
-  not_implemented();
 }
-
+//DR ok
 
 void exec_calc_end_branch(short int sc, int A, int B, int IR, int PC, int ALUOUT, int *ALUOUTnew, int *PCnew) {
   //Se a instrução já tem o tipo definido, definir a operação:
+
+  //R-Type:
   if(sc == enable_ALUSrcA | enable_ALUOp1) {
-    //R-Type:
     char alu_op, overflow, zero;
 
     char operation = IR;
@@ -244,13 +271,38 @@ void exec_calc_end_branch(short int sc, int A, int B, int IR, int PC, int ALUOUT
     }
 
     alu(A, B, alu_op, ALUOUTnew, &zero, &overflow);
+    //Não sei o que fazer com o zero e com o oveflow...
     return;
   }
 
+  //Jump:
+  if(sc == enable_PCWriteCond | enable_PCSource1) {
+    *PCnew = (PC & split_cop) | ((IR & split_jump_address) << 2); //Conferir precedência
+    return;
+  }
 
-  not_implemented();
+  //Beq:
+  if(sc == (enable_ALUSrcA | enable_ALUOp0) | (enable_PCSource0 | enable_PCWriteCond)) {
+    //Primeiro, subtrair A e B na ULA:
+    char overflow, zero;
+    alu(A, B, ALU_OPERATION_SUB, ALUOUTnew, &zero, &overflow);
+    if(zero == 1) {
+      //Caso A-B=0 => A=B, computar PC = PC + 4 + (offset << 2):
+      alu(PC, (IR & split_immediate) << 2, ALU_OPERATION_ADD, ALUOUTnew, &zero, &overflow);
+      *PCnew = *ALUOUTnew;
+      //Checar se as operações são feitas separadamente dentro da ULA ou se podem ser feitas em duas chamadas.
+    }
+    return;
+  }
+
+  //LW e SW:
+  if(sc == enable_ALUSrcA | enable_ALUSrcB1) {
+    //ALUOut = A + ext(IR[15-0]);
+    char overflow, zero;
+    alu(A, IR & split_immediate, ALU_OPERATION_ADD, ALUOUTnew, &zero, &overflow);
+  }
 }
-
+//Exec escrita conforme slide
 
 void write_r_access_memory(short int sc, int IR, int MDR, int AMUOUT, int PC, int *MDRnew, int *IRnew) {
   not_implemented();
