@@ -161,19 +161,37 @@ void control_unit(int IR, short int *sc) {
   }
 
   //Se o sinal de controle já corresponde ao de um jump, a operação foi finalizada no ciclo anterior:
-  if(*sc == enable_PCWriteCond | enable_PCSource1) {
+  if(*sc == (enable_PCWriteCond | enable_PCSource1)) {
     *sc = enable_Instruction_Fetch;
     return;
   }
 
   //Se o sinal de controle já corresponde ao de uma Beq, a operação foi finalizada no ciclo anterior:
-  if(*sc == (enable_ALUSrcA | enable_ALUOp0) | (enable_PCSource0 | enable_PCWriteCond)) {
+  if(*sc == ((enable_ALUSrcA | enable_ALUOp0) | (enable_PCSource0 | enable_PCWriteCond))) {
     *sc = enable_Instruction_Fetch;
     return;
   }
 
+  //Se o sinal de controle corresponde ao de acesso à memória por uma R-Type ou por uma SW, a operação foi finalizada no ciclo anterior:
+  if((*sc == (enable_IorD | enable_MemWrite)) || (*sc == (enable_RegDst | enable_RegWrite))) {
+    *sc = enable_Instruction_Fetch;
+    return;
+  }
+
+  //Se o sinal de controle corresponde ao de uma escrita vinda da memória, a operação de LW foi finalizada no ciclo anterior:
+  if(*sc == (enable_RegWrite | enable_MemtoReg)) {
+    *sc = enable_Instruction_Fetch;
+    return;
+  }
+
+  //Se o sinal de controle corresponde ao de acesso à memória por uma LW, ativar a escrita vinda da memória no ciclo atual:
+  if(*sc == (enable_IorD | enable_MemRead)) {
+    *sc = enable_RegWrite | enable_MemtoReg;
+    return;
+  }
+
   //Se o sinal de controle já corresponde ao de uma LW ou de uma SW, ativar o acesso à memória no ciclo atual:
-  if(*sc == enable_ALUSrcA | enable_ALUSrcB1) {
+  if(*sc == (enable_ALUSrcA | enable_ALUSrcB1)) {
     //LW op: 0x23 | SW op: 0x2b
     int opcode = IR & split_cop;
     if(opcode == LW_Op) {
@@ -189,7 +207,7 @@ void control_unit(int IR, short int *sc) {
   }
 
   //Se o sinal de controle já corresponde ao de uma R-Type, ativar o acesso à memória no ciclo atual:
-  if(*sc == enable_ALUSrcA | enable_ALUOp1) {
+  if(*sc == (enable_ALUSrcA | enable_ALUOp1)) {
     *sc = enable_RegDst | enable_RegWrite;
     return;
   }
@@ -229,7 +247,7 @@ void control_unit(int IR, short int *sc) {
 
   not_implemented();
 }
-//CU implementada até os sinais de controle para chamada do acesso à memória por LW e SW
+//Ok
 
 void instruction_fetch(short int sc, int PC, int ALUOUT, int IR, int* PCnew, int* IRnew, int* MDRnew) {
   if(sc == enable_Instruction_Fetch) {
@@ -254,7 +272,7 @@ void exec_calc_end_branch(short int sc, int A, int B, int IR, int PC, int ALUOUT
   //Se a instrução já tem o tipo definido, definir a operação:
 
   //R-Type:
-  if(sc == enable_ALUSrcA | enable_ALUOp1) {
+  if(sc == (enable_ALUSrcA | enable_ALUOp1)) {
     char alu_op, overflow, zero;
 
     char operation = IR;
@@ -291,13 +309,13 @@ void exec_calc_end_branch(short int sc, int A, int B, int IR, int PC, int ALUOUT
   }
 
   //Jump:
-  if(sc == enable_PCWriteCond | enable_PCSource1) {
+  if(sc == (enable_PCWriteCond | enable_PCSource1)) {
     *PCnew = (PC & split_cop) | ((IR & split_jump_address) << 2); //Conferir precedência
     return;
   }
 
   //Beq:
-  if(sc == (enable_ALUSrcA | enable_ALUOp0) | (enable_PCSource0 | enable_PCWriteCond)) {
+  if(sc == ((enable_ALUSrcA | enable_ALUOp0) | (enable_PCSource0 | enable_PCWriteCond))) {
     //Primeiro, subtrair A e B na ULA:
     char overflow, zero;
     alu(A, B, ALU_OPERATION_SUB, ALUOUTnew, &zero, &overflow);
@@ -311,7 +329,7 @@ void exec_calc_end_branch(short int sc, int A, int B, int IR, int PC, int ALUOUT
   }
 
   //LW e SW:
-  if(sc == enable_ALUSrcA | enable_ALUSrcB1) {
+  if(sc == (enable_ALUSrcA | enable_ALUSrcB1)) {
     //ALUOut = A + ext(IR[15-0]);
     char overflow, zero;
     alu(A, IR & split_immediate, ALU_OPERATION_ADD, ALUOUTnew, &zero, &overflow);
@@ -323,20 +341,20 @@ void write_r_access_memory(short int sc, int IR, int MDR, int AMUOUT, int PC, in
   //*IRnew ????
 
   //Se o sinal de controle indica uma LW:
-  if(sc == enable_IorD | enable_MemRead) {
+  if(sc == (enable_IorD | enable_MemRead)) {
     //MDR = Mem[ALUOut]
     *MDRnew =  memory[AMUOUT];
     return;
   }
 
   //Se o sinal de controle indica uma SW:
-  if(sc == enable_IorD | enable_MemWrite) {
+  if(sc == (enable_IorD | enable_MemWrite)) {
     //Mem[ALUOut] = B (IR)
     memory[AMUOUT] = IR;
     return;
   }
 
-  if(sc == enable_RegDst | enable_RegWrite) {
+  if(sc == (enable_RegDst | enable_RegWrite)) {
     //Reg[IR[15-11]] = ALUOut
     reg[IR & split_rd] = AMUOUT;
     return;
@@ -345,9 +363,11 @@ void write_r_access_memory(short int sc, int IR, int MDR, int AMUOUT, int PC, in
 //MEM feita a menos dos itens listados
 
 void write_ref_mem(short int sc, int IR, int MDR, int ALUOUT) {
-  not_implemented();
+  //Reg[IR[20-16] = MDR
+  reg[IR & split_rt] = MDR;
+  return;
 }
-
+//WB ok
 
 /* This is your simulator main function. Normally, it should just call
    the simulator's start function, which will execute the simulation loop.
