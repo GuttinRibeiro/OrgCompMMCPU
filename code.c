@@ -276,13 +276,13 @@ void control_unit(int IR, short int *sc) {
 
 void instruction_fetch(short int sc, int PC, int ALUOUT, int IR, int* PCnew, int* IRnew, int* MDRnew) {
   if(sc == enable_Instruction_Fetch && PC < MAX) {
+    printf("[IF] PC: %d\n", PC);
     *IRnew = memory[PC];
-    printf("[IF] Nova palavra: %d\n", *IRnew);
+    printf("[IF] Nova palavra: %x\n", *IRnew);
     if(*IRnew == 0) {
       //loop = 0;
-      return;
     }
-    *PCnew = PC++; //PC+1 por estarmos trabalhando com vetores na main
+    *PCnew = PC + 1; //PC+1 por estarmos trabalhando com vetores na main
   }
   else {
     //loop = 0;
@@ -395,7 +395,7 @@ void write_r_access_memory(short int sc, int IR, int MDR, int AMUOUT, int PC, in
   //Se o sinal de controle indica uma SW:
   if(sc == (enable_IorD | enable_MemWrite)) {
     //Mem[ALUOut] = B (IR)
-    printf("[SW] Mem[%d] = %d\n", AMUOUT, IR);
+    printf("[SW] Mem[%d] = %x\n", AMUOUT, IR);
     memory[AMUOUT] = IR;
     return;
   }
@@ -403,7 +403,7 @@ void write_r_access_memory(short int sc, int IR, int MDR, int AMUOUT, int PC, in
   //Se o sinal de controle indica uma R-type:
   if(sc == (enable_RegDst | enable_RegWrite)) {
     //Reg[IR[15-11]] = ALUOut
-    printf("[SW] Reg[IR[%d]] = %d\n", (IR & split_rd) >> 11, AMUOUT);
+    printf("[SW] Reg[IR[%d]] = %x\n", (IR & split_rd) >> 11, AMUOUT);
     reg[(IR & split_rd) >> 11] = AMUOUT;
     return;
   }
@@ -413,7 +413,7 @@ void write_r_access_memory(short int sc, int IR, int MDR, int AMUOUT, int PC, in
 void write_ref_mem(short int sc, int IR, int MDR, int ALUOUT) {
   if(sc == (enable_RegWrite | enable_MemtoReg)) {
     //Reg[IR[20-16] = MDR
-    printf("[WB] Reg[%d] = %d\n", (split_rt & IR) >> 16, MDR);
+    printf("[WB] Reg[%d] = %x\n", (split_rt & IR) >> 16, MDR);
     reg[(split_rt & IR) >> 16] = MDR;
     return;
   }

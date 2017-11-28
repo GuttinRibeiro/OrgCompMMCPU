@@ -34,7 +34,6 @@ int memory[MAX];		/* Main memory. */
 
 int reg[NUMREG];		/* Register bank */
 
-
 int loop = 1;			/* Main loop control. */
 
 void mmcpu_start (void)
@@ -119,7 +118,7 @@ void mmcpu_start (void)
         //printf("Memory access ok\n");
         write_ref_mem(sc, IR, MDR, ALUOUT);
         //printf("Memory write ok\n");
-        printf("Fim do ciclo\n\n");
+        printf("Fim do ciclo %d\n\n", nr_cycles);
 	/* Count cycle. */
         nr_cycles++;
 
@@ -132,7 +131,8 @@ void mmcpu_start (void)
         ALUOUT = ALUOUTnew;
 
 	/* End of cycle. */
-
+        if(nr_cycles > 20)
+          loop = 0;
     }
 
     /* Dump memory for verifying the result. */
