@@ -108,18 +108,18 @@ void mmcpu_start (void)
 	   The control signals in sc will enable/disable the effective execution. */
 
         control_unit(IR, &sc);
-        printf("Control unit ok\n");
+        //printf("Control unit ok\n");
         instruction_fetch(sc, PC, ALUOUT, IR, &PCnew, &IRnew, &MDRnew);
-        printf("IF ok\n");
+        //printf("IF ok\n");
         decode_register(sc, IR, PC, A, B, &Anew, &Bnew, &ALUOUTnew);
-        printf("Decode register ok\n");
+        //printf("Decode register ok\n");
         exec_calc_end_branch(sc, A, B, IR, PC, ALUOUT, &ALUOUTnew, &PCnew);
-        printf("Execution ok\n");
-        write_r_access_memory(sc, B, IR, ALUOUT, PC, &MDRnew, &IRnew);
-        printf("Memory access ok\n");
+        //printf("Execution ok\n");
+        write_r_access_memory(sc, B, IR, ALUOUT, PC, &MDRnew, &IRnew); //[Estranho] no cabeçalho da função, IR é o segundo parâmetro
+        //printf("Memory access ok\n");
         write_ref_mem(sc, IR, MDR, ALUOUT);
-        printf("Memory write ok\n");
-
+        //printf("Memory write ok\n");
+        printf("Fim do ciclo\n\n");
 	/* Count cycle. */
         nr_cycles++;
 
