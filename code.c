@@ -18,8 +18,12 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <mmcpu/cpu.h>
+/*#include <mmcpu/cpu.h>
 #include <mmcpu/mask.h>
+*/
+
+#include "mask.h"
+#include "cpu.h"
 
 /* Students, you are required to implemented the functions bellow.
    Please, refere to cpu.h for further information. */
@@ -250,11 +254,18 @@ void control_unit(int IR, short int *sc) {
 //Ok
 
 void instruction_fetch(short int sc, int PC, int ALUOUT, int IR, int* PCnew, int* IRnew, int* MDRnew) {
-  if(sc == enable_Instruction_Fetch) {
+  if(sc == enable_Instruction_Fetch && PC < MAX) {
     *IRnew = memory[PC];
+    if(*IRnew == 0) {
+      //loop = 0;
+      return;
+    }
     *PCnew = PC++; //PC+1 por estarmos trabalhando com vetores na main
-    return;
   }
+  else {
+    //loop = 0;
+  }
+  return;
 }
 //IF ok
 
