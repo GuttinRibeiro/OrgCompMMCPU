@@ -69,7 +69,8 @@
 4- Descobrir para que serve o overflow da ULA;
 5- Descobrir para que serve o IRnew no acesso à memória;
 6- Em todos os splits antes de acessos à posição em vetores, testar a inclusão de shifts;
-7- Criar e utilizar saídas de erro.
+7- Criar e utilizar saídas de erro;
+8- Descobrir como printar um valor em binário.
 */
 
 int alu(int a, int b, char alu_op, int *result_alu, char *zero, char *overflow) {
@@ -292,8 +293,8 @@ void instruction_fetch(short int sc, int PC, int ALUOUT, int IR, int* PCnew, int
 
 void decode_register(short int sc, int IR, int PC, int A, int B, int *Anew, int *Bnew, int *ALUOUTnew) {
   if(sc == enable_Decode_Register) {
-    *Anew = reg[split_rs & IR];
-    *Bnew = reg[split_rt & IR];
+    *Anew = reg[(split_rs & IR) >> 21];
+    *Bnew = reg[(split_rt & IR) >> 16];
     *ALUOUTnew = (split_immediate & IR) << 2; //Conferir se é equivalente a ALUOut = PC + ext(IR[15-0] << 2)
     printf("[DR] A: %d | B: %d | ALUOut: %d\n", *Anew, *Bnew, *ALUOUTnew);
     return;
@@ -363,7 +364,7 @@ void exec_calc_end_branch(short int sc, int A, int B, int IR, int PC, int ALUOUT
     alu(A, B, ALU_OPERATION_SUB, ALUOUTnew, &zero, &overflow);
     if(zero == 1) {
       //Caso A-B=0 => A=B, computar PC = PC + 4 + (offset << 2):
-      alu(PC, (IR & split_immediate) << 2, ALU_OPERATION_ADD, ALUOUTnew, &zero, &overflow);
+      alu(PC, (IR & split_immediate) << 2, ALU_OP_Add, ALUOUTnew, &zero, &overflow);
       *PCnew = *ALUOUTnew;
       //Checar se as operações são feitas separadamente dentro da ULA ou se podem ser feitas em duas chamadas.
     }
@@ -375,7 +376,7 @@ void exec_calc_end_branch(short int sc, int A, int B, int IR, int PC, int ALUOUT
     printf("[EX] Instrução LW ou SW\n");
     //ALUOut = A + ext(IR[15-0]);
     char overflow, zero;
-    alu(A, IR & split_immediate, ALU_OPERATION_ADD, ALUOUTnew, &zero, &overflow);
+    alu(A, IR & split_immediate, ALU_OP_Add, ALUOUTnew, &zero, &overflow);
   }
 }
 //Exec escrita conforme slide
@@ -402,8 +403,8 @@ void write_r_access_memory(short int sc, int IR, int MDR, int AMUOUT, int PC, in
   //Se o sinal de controle indica uma R-type:
   if(sc == (enable_RegDst | enable_RegWrite)) {
     //Reg[IR[15-11]] = ALUOut
-    printf("[SW] Reg[IR[%d]] = %d\n", IR & split_rd, AMUOUT);
-    reg[IR & split_rd] = AMUOUT;
+    printf("[SW] Reg[IR[%d]] = %d\n", (IR & split_rd) >> 11, AMUOUT);
+    reg[(IR & split_rd) >> 11] = AMUOUT;
     return;
   }
 }
@@ -412,8 +413,8 @@ void write_r_access_memory(short int sc, int IR, int MDR, int AMUOUT, int PC, in
 void write_ref_mem(short int sc, int IR, int MDR, int ALUOUT) {
   if(sc == (enable_RegWrite | enable_MemtoReg)) {
     //Reg[IR[20-16] = MDR
-    printf("[WB] Reg[%d] = %d\n", IR & split_rt, MDR);
-    reg[IR & split_rt] = MDR;
+    printf("[WB] Reg[%d] = %d\n", (split_rt & IR) >> 16, MDR);
+    reg[(split_rt & IR) >> 16] = MDR;
     return;
   }
 }
