@@ -24,7 +24,7 @@
 
   ******************/
 
-/* 
+/*
 int ula (int a, int b, char ula_op, int *result_ula, char *zero, char *overflow)
 
 input arguments:
@@ -35,7 +35,7 @@ int *result_ula, char *zero, char *overflow */
 
 int alu( int, int , char, int *, char *, char *);
 
-/* 
+/*
 void control_unit(IR, short int *sc);
 
 input arguments:
@@ -46,7 +46,7 @@ short int *sc     */
 
 void control_unit(int, short int *);
 
-/* 
+/*
 void instruction_fetch(short int sc, int PC, int ALUOUT, int IR, int *PCnew, int *IRnew, int *MDRnew);
 
 input arguments:
@@ -57,7 +57,7 @@ int *PCnew, int *IRnew, int *MDRnew     */
 
 void instruction_fetch(short int, int, int, int, int*, int*, int*);
 
-/* 
+/*
 void decode_register (short int sc, int IR, int PC, int A, int B, int *Anew, int *Bnew, int *ALUOUTnew);
 
 input arguments:
@@ -80,7 +80,7 @@ int *ALUOUTnew, int *PCnew */
 
 void exec_calc_end_branch(short int, int, int, int, int, int, int *, int *);
 
-/* 
+/*
 void write_r_access_memory(short int sc, int B, int IR, int ALUOUT, int PC, int *MDRnew, int *IRnew);
 
 input arguments:
@@ -92,7 +92,7 @@ int *MDRnew, int *IRnew
 
 void write_r_access_memory(short int, int, int, int, int, int *, int *);
 
-/* 
+/*
 void write_ref_mem int sc, int IR, int MDR, int ALUOUT);
 
 input arguments:
@@ -112,7 +112,7 @@ void mmcpu_start();
 
 extern int memory[];  /* Main memory. */
 extern int reg[];     /* Register banck */
-
+extern int loop;      /* Main loop control. */
 
 /* Auxiliary stuff. */
 #include <stdio.h>
