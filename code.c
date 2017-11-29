@@ -63,14 +63,11 @@
 #define ZERO          0b00000000000000000000000000000000
 
 /* TODOLIST:
-1- Checar as posições de acesso à memória e aos registradores;
-2- Criar máscaras de erros para 1;
-3- Checar saída de erro da ULA;
-4- Descobrir para que serve o overflow da ULA;
-5- Descobrir para que serve o IRnew no acesso à memória;
-6- Em todos os splits antes de acessos à posição em vetores, testar a inclusão de shifts;
-7- Criar e utilizar saídas de erro;
-8- Descobrir como printar um valor em binário.
+1- Descobrir a questão do overflow;
+2- Limpar o código;
+3- Deixar a WB no mesmo formato da cpu.c conforme commit do Monaco;
+4- Reportar o fato de o IRnew ser inútil na MEM;
+5- Apagar a TODOLIST.
 */
 
 int alu(int a, int b, char alu_op, int *result_alu, char *zero, char *overflow) {
