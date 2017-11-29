@@ -58,11 +58,11 @@ int S_C
 #define enable_nor				0x0c	// 00001100		(OR)
 #define zera_ALU_control		0xf0  	// 11110000		(AND)
 
-/* Split instruction fields. 
+/* Split instruction fields.
    31  26 25 21 20 16 15 11 10  6 5    0 */
-#define split_cop			0xfc000000	// 111111 00000 00000 00000 00000 000000  (AND)
-#define split_rs			0x03e00000	// 000000 11111 00000 00000 00000 000000  (AND)
-#define split_rt			0x001f0000	// 000000 00000 11111 00000 00000 000000  (AND)
+#define split_cop			0xfc000000	    // 111111 00000 00000 00000 00000 000000  (AND)
+#define split_rs			0x03e00000	    // 000000 11111 00000 00000 00000 000000  (AND)
+#define split_rt			0x001f0000	    // 000000 00000 11111 00000 00000 000000  (AND)
 #define split_rd           0x0000f800	// 000000 00000 00000 11111 00000 000000  (AND)
 #define split_cfunction		0x0000003f	// 000000 00000 00000 00000 00000 111111  (AND)
 #define split_immediate     0x0000ffff	// 000000 00000 00000   1111111111111111  (AND)
@@ -111,7 +111,7 @@ int S_C
 #define disable_IRWrite			0x7fff      // 0111 1111 1111 1111  (AND)
 
 /* Split control signals. */
-#define split_RegDst		   0x0001	   // 0000 0000 0000 0001  (OR) 
+#define split_RegDst		   0x0001	   // 0000 0000 0000 0001  (OR)
 #define split_RegWrite		   0x0002      // 0000 0000 0000 0010  (OR)
 #define split_ALUSrcA    	   0x0004      // 0000 0000 0000 0100  (OR)
 #define split_ALUSrcB0        0x0008      // 0000 0000 0000 1000  (OR)

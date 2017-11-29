@@ -58,8 +58,8 @@
 #define ALU_OP_Err                       0b11111111
 
 //Máscaras para operações dentro da ULA:
-#define MAX_SUM_VALUE 0b00000000000000000000000000011111
-#define MIN_SUB_VALUE 0b11111111111111111111111111100000
+#define MAX_SUM_VALUE 0b00000000111111111111111111111111
+#define MIN_SUB_VALUE 0b11111111111111111111111100000000
 #define ZERO          0b00000000000000000000000000000000
 
 /* TODOLIST:
@@ -157,7 +157,7 @@ int alu(int a, int b, char alu_op, int *result_alu, char *zero, char *overflow) 
       *result_alu = 1;
     }
     else {
-      *zero = 1;
+      *zero = 0;
       *result_alu = 0;
     }
   }
@@ -275,17 +275,18 @@ void control_unit(int IR, short int *sc) {
 //Ok
 
 void instruction_fetch(short int sc, int PC, int ALUOUT, int IR, int* PCnew, int* IRnew, int* MDRnew) {
-  if(sc == enable_Instruction_Fetch && PC < MAX) {
-    printf("[IF] PC: %d\n", PC);
-    *IRnew = memory[PC];
+  if(sc == enable_Instruction_Fetch && PC/4 < MAX) {
+    printf("[IF] PC: %d\n", PC/4);
+    *IRnew = memory[PC/4];
     printf("[IF] Nova palavra: %x\n", *IRnew);
     if(*IRnew == 0) {
-      //loop = 0;
+      loop = 0;
     }
-    *PCnew = PC + 1; //PC+1 por estarmos trabalhando com vetores na main
+    *PCnew = PC + 4; //PC+1 por estarmos trabalhando com vetores na main
   }
-  else {
-    //loop = 0;
+  else if(PC >= MAX/4) {
+    printf("[IF] Memória completamente percorrida.\n");
+    loop = 0;
   }
   return;
 }
@@ -296,7 +297,7 @@ void decode_register(short int sc, int IR, int PC, int A, int B, int *Anew, int 
     *Anew = reg[(split_rs & IR) >> 21];
     *Bnew = reg[(split_rt & IR) >> 16];
     *ALUOUTnew = (split_immediate & IR) << 2; //Conferir se é equivalente a ALUOut = PC + ext(IR[15-0] << 2)
-    printf("[DR] A: %d | B: %d | ALUOut: %d\n", *Anew, *Bnew, *ALUOUTnew);
+    printf("[DR] A: Reg[%d] = %d | B: Reg[%d] = %d | ALUOut: %d\n", (split_rs & IR) >> 21, *Anew, (split_rt & IR) >> 16, *Bnew, *ALUOUTnew);
     return;
   }
 }
@@ -320,31 +321,33 @@ void exec_calc_end_branch(short int sc, int A, int B, int IR, int PC, int ALUOUT
        0x2a: slt.
     */
     if(operation == ALU_OPERATION_ADD) {
-      printf("soma\n");
+      printf("soma: ");
       alu_op = ALU_OP_Add;
     }
     else if (operation == ALU_OPERATION_SUB) {
-      printf("subtração\n");
+      printf("subtração: ");
       alu_op = ALU_OP_Sub;
     }
     else if (operation == ALU_OPERATION_AND) {
-      printf("AND\n");
+      printf("AND: ");
       alu_op = ALU_OP_And;
     }
     else if (operation == ALU_OPERATION_OR) {
-      printf("OR\n");
+      printf("OR: ");
       alu_op = ALU_OP_Or;
     }
     else if (operation == ALU_OPERATION_SLT) {
-      printf("SLT\n");
+      printf("SLT: ");
       alu_op = ALU_OP_Slt;
     }
     else {
       printf("ERRO!\n");
       alu_op = ALU_OP_Err;
+      return;
     }
 
     alu(A, B, alu_op, ALUOUTnew, &zero, &overflow);
+    printf("RESULTADO: %d\n", *ALUOUTnew);
     //Não sei o que fazer com o zero e com o oveflow...
     return;
   }
@@ -361,7 +364,7 @@ void exec_calc_end_branch(short int sc, int A, int B, int IR, int PC, int ALUOUT
     printf("[EX] Instrução Beq\n");
     //Primeiro, subtrair A e B na ULA:
     char overflow, zero;
-    alu(A, B, ALU_OPERATION_SUB, ALUOUTnew, &zero, &overflow);
+    alu(A, B, ALU_OP_Sub, ALUOUTnew, &zero, &overflow);
     if(zero == 1) {
       //Caso A-B=0 => A=B, computar PC = PC + 4 + (offset << 2):
       alu(PC, (IR & split_immediate) << 2, ALU_OP_Add, ALUOUTnew, &zero, &overflow);
@@ -373,10 +376,12 @@ void exec_calc_end_branch(short int sc, int A, int B, int IR, int PC, int ALUOUT
 
   //LW e SW:
   if(sc == (enable_ALUSrcA | enable_ALUSrcB1)) {
-    printf("[EX] Instrução LW ou SW\n");
+    printf("[EX] Instrução LW ou SW: ");
     //ALUOut = A + ext(IR[15-0]);
     char overflow, zero;
-    alu(A, IR & split_immediate, ALU_OP_Add, ALUOUTnew, &zero, &overflow);
+    alu(A/4, IR & split_immediate, ALU_OP_Add, ALUOUTnew, &zero, &overflow);
+    printf("A = %d, IR[15-0] = %d ", A/4, (IR & split_immediate));
+    printf("RESULTADO: %d\n", *ALUOUTnew);
   }
 }
 //Exec escrita conforme slide
@@ -394,16 +399,16 @@ void write_r_access_memory(short int sc, int IR, int MDR, int AMUOUT, int PC, in
 
   //Se o sinal de controle indica uma SW:
   if(sc == (enable_IorD | enable_MemWrite)) {
-    //Mem[ALUOut] = B (IR)
-    printf("[SW] Mem[%d] = %x\n", AMUOUT, IR);
-    memory[AMUOUT] = IR;
+    //Mem[ALUOut] = B
+    printf("[SW] Mem[%d] = %d\n", AMUOUT, MDR);
+    memory[AMUOUT] = MDR;
     return;
   }
 
   //Se o sinal de controle indica uma R-type:
   if(sc == (enable_RegDst | enable_RegWrite)) {
     //Reg[IR[15-11]] = ALUOut
-    printf("[SW] Reg[IR[%d]] = %x\n", (IR & split_rd) >> 11, AMUOUT);
+    printf("[RT] Reg[%d] = %d\n", (IR & split_rd) >> 11, AMUOUT);
     reg[(IR & split_rd) >> 11] = AMUOUT;
     return;
   }
@@ -413,7 +418,7 @@ void write_r_access_memory(short int sc, int IR, int MDR, int AMUOUT, int PC, in
 void write_ref_mem(short int sc, int IR, int MDR, int ALUOUT) {
   if(sc == (enable_RegWrite | enable_MemtoReg)) {
     //Reg[IR[20-16] = MDR
-    printf("[WB] Reg[%d] = %x\n", (split_rt & IR) >> 16, MDR);
+    printf("[WB] Reg[%d] = %d\n", (split_rt & IR) >> 16, MDR);
     reg[(split_rt & IR) >> 16] = MDR;
     return;
   }

@@ -72,7 +72,7 @@ void mmcpu_start (void)
 
     /* Memory. */
     memory[0] = 0x8c480000;  // 1000 1100 0100 1000 0000 0000 0000 0000  lw $t0, 0($v0) *5*
-    memory[1] = 0x010c182a;  // 0000 0001 0000 1100 0001 1000 00101010   slt $v1, $t0, $t4 *4*
+    memory[1] = 0x010c182a;  // 0000 0001 0000 1100 0001 1000 00101010   slt $t0, $t4, $v1 *4*
     memory[2] = 0x106d0004;  // 0001 0000 0110 1101 0000 0000 0000 0100  beq $v1, $t5, fim(4 palavras abaixo de PC+4) *3*
     memory[3] = 0x01084020;  // 0000 0001 0000 1000 0100 0000 0010 0000  add $t0, $t0, $t0 *4*
     memory[4] = 0xac480000;  // 1010 1100 0100 1000 0000 0000 0000 0000  sw $t0, 0($v0) *4*
@@ -114,7 +114,8 @@ void mmcpu_start (void)
         //printf("Decode register ok\n");
         exec_calc_end_branch(sc, A, B, IR, PC, ALUOUT, &ALUOUTnew, &PCnew);
         //printf("Execution ok\n");
-        write_r_access_memory(sc, B, IR, ALUOUT, PC, &MDRnew, &IRnew); //[Estranho] no cabeçalho da função, IR é o segundo parâmetro
+        //write_r_access_memory(sc, B, IR, ALUOUT, PC, &MDRnew, &IRnew); //[Estranho] no cabeçalho da função, IR é o segundo parâmetro
+        write_r_access_memory(sc, IR, B, ALUOUT, PC, &MDRnew, &IRnew);
         //printf("Memory access ok\n");
         write_ref_mem(sc, IR, MDR, ALUOUT);
         //printf("Memory write ok\n");
@@ -131,8 +132,14 @@ void mmcpu_start (void)
         ALUOUT = ALUOUTnew;
 
 	/* End of cycle. */
-        if(nr_cycles > 20)
-          loop = 0;
+
+      printf("Registradores\n");
+      printf("$v0 = %d\n", reg[2]);
+      printf("$v1 = %d\n", reg[3]);
+      printf("$t0 = %d\n", reg[8]);
+      printf("$t3 = %d\n", reg[11]);
+      printf("$t4 = %d\n", reg[12]);
+      printf("$t5 = %d\n\n", reg[13]);
     }
 
     /* Dump memory for verifying the result. */
@@ -141,7 +148,7 @@ void mmcpu_start (void)
         int ii;
         for (ii = 20; ii < 27; ii++) {
             printf("memory[%d]=%d\n", ii, memory[ii]);
-    }
+        }
 
         printf("N. executed cycles =%d\n", nr_cycles);
     }
