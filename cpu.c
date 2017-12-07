@@ -115,7 +115,7 @@ void mmcpu_start (void)
         exec_calc_end_branch(sc, A, B, IR, PC, ALUOUT, &ALUOUTnew, &PCnew);
         //printf("Execution ok\n");
         //write_r_access_memory(sc, B, IR, ALUOUT, PC, &MDRnew, &IRnew); //[Estranho] no cabeçalho da função, IR é o segundo parâmetro
-        write_r_access_memory(sc, IR, B, ALUOUT, PC, &MDRnew, &IRnew);
+        write_r_access_memory(sc, B, IR, ALUOUT, PC, &MDRnew, &IRnew);
         //printf("Memory access ok\n");
         write_ref_mem(sc, IR, MDR, ALUOUT);
         //printf("Memory write ok\n");
